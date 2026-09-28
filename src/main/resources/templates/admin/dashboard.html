@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Admin Dashboard &bull; Online Quiz Platform</title>
+</head>
+<body>
+<div th:fragment="content">
+    <!-- Header Section -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom gap-3">
+        <div>
+            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-1 rounded-pill mb-1">
+                <i class="bi bi-shield-lock-fill me-1"></i> ADMINISTRATOR CONSOLE
+            </span>
+            <h2 class="fw-bold mb-0">Assessment Operations &amp; Management</h2>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary" onclick="exportGlobalCsv()">
+                <i class="bi bi-download me-1"></i> Export Global CSV
+            </button>
+            <a th:href="@{/admin/quizzes/create}" class="btn btn-primary">
+                <i class="bi bi-plus-circle-fill me-1"></i> Create Assessment
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Overview Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card stat-card p-3 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase">Total Quizzes</div>
+                        <div class="fs-2 fw-bold text-dark mt-1" th:text="${totalQuizzes}">0</div>
+                    </div>
+                    <div class="stat-icon-circle bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-journals"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card stat-card stat-success p-3 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase">Active &amp; Published</div>
+                        <div class="fs-2 fw-bold text-success mt-1" th:text="${publishedQuizzes}">0</div>
+                    </div>
+                    <div class="stat-icon-circle bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-check2-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card stat-card stat-warning p-3 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase">Total Submissions</div>
+                        <div class="fs-2 fw-bold text-warning mt-1" th:text="${stats.totalAttempts}">0</div>
+                    </div>
+                    <div class="stat-icon-circle bg-warning bg-opacity-10 text-warning">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card stat-card p-3 shadow-sm h-100" style="border-left-color: #06b6d4;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase">Average Accuracy</div>
+                        <div class="fs-2 fw-bold text-info mt-1"><span th:text="${stats.overallAverageScore}">0.0</span>%</div>
+                    </div>
+                    <div class="stat-icon-circle bg-info bg-opacity-10 text-info">
+                        <i class="bi bi-pie-chart-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quizzes Table Card -->
+    <div class="card p-4 shadow-sm">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <h5 class="fw-bold mb-0">Curated Quizzes</h5>
+                <span class="badge bg-light text-dark border" th:text="${quizzes.size() + ' Quizzes'}">0 Quizzes</span>
+            </div>
+
+            <!-- Table Search & Filter -->
+            <div class="d-flex gap-2">
+                <input type="text" id="adminSearchInput" class="form-control form-control-sm" placeholder="Search assessments..." onkeyup="filterAdminTable()" style="width: 200px;">
+                <select id="statusFilter" class="form-select form-select-sm" style="width: 140px;" onchange="filterAdminTable()">
+                    <option value="all">All Status</option>
+                    <option value="published">Published</option>
+                    <option value="draft">Draft</option>
+                </select>
+            </div>
+        </div>
+
+        <div th:if="${#lists.isEmpty(quizzes)}" class="text-center py-5 text-muted">
+            <i class="bi bi-journal-plus fs-1 d-block mb-3"></i>
+            <p>No assessment modules configured yet.</p>
+            <a th:href="@{/admin/quizzes/create}" class="btn btn-primary btn-sm">Create Assessment</a>
+        </div>
+
+        <div th:if="${not #lists.isEmpty(quizzes)}" class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="adminQuizTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Title &amp; Syllabus</th>
+                        <th>Duration</th>
+                        <th>Questions</th>
+                        <th>Status</th>
+                        <th>Created Date</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="q : ${quizzes}"
+                        th:data-status="${q.published ? 'published' : 'draft'}"
+                        class="admin-quiz-row">
+                        <td>
+                            <div class="fw-bold text-dark quiz-title-cell" th:text="${q.title}">Assessment Title</div>
+                            <small class="text-muted" th:text="${#strings.abbreviate(q.description, 65)}">Short syllabus description</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-surface-elevated text-dark border">
+                                <i class="bi bi-clock me-1 text-primary"></i><span th:text="${q.durationMinutes + ' mins'}">10 mins</span>
+                            </span>
+                        </td>
+                        <td>
+                            <span class="fw-semibold" th:text="${q.totalQuestions}">5</span> Questions
+                        </td>
+                        <td>
+                            <span th:class="${q.published ? 'badge bg-success bg-opacity-10 text-success border border-success border-opacity-25' : 'badge bg-secondary bg-opacity-10 text-secondary border'}"
+                                  th:text="${q.published ? 'Published' : 'Draft'}">Published</span>
+                        </td>
+                        <td class="text-muted small" th:text="${#temporals.format(q.createdAt, 'MMM dd, yyyy')}">Oct 12, 2026</td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-secondary" th:onclick="'exportQuizCsv(' + ${q.id} + ')'" title="Export CSV">
+                                    <i class="bi bi-file-earmark-arrow-down"></i>
+                                </button>
+                                <a th:href="@{'/admin/quizzes/' + ${q.id} + '/analytics'}" class="btn btn-outline-info" title="Analytics &amp; Graphs">
+                                    <i class="bi bi-graph-up"></i>
+                                </a>
+                                <a th:href="@{'/admin/quizzes/' + ${q.id} + '/leaderboard'}" class="btn btn-outline-warning text-dark" title="Leaderboard">
+                                    <i class="bi bi-trophy"></i>
+                                </a>
+                                <a th:href="@{'/admin/quizzes/' + ${q.id} + '/edit'}" class="btn btn-outline-secondary" title="Edit Assessment">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-danger" title="Delete" th:onclick="'deleteQuiz(' + ${q.id} + ')'">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Admin Script for Delete & CSV Export -->
+    <script>
+        function filterAdminTable() {
+            const query = document.getElementById('adminSearchInput').value.toLowerCase().trim();
+            const status = document.getElementById('statusFilter').value;
+            const rows = document.querySelectorAll('.admin-quiz-row');
+
+            rows.forEach(row => {
+                const title = row.querySelector('.quiz-title-cell').textContent.toLowerCase();
+                const rowStatus = row.getAttribute('data-status');
+
+                const matchesQuery = !query || title.includes(query);
+                const matchesStatus = status === 'all' || rowStatus === status;
+
+                row.style.display = (matchesQuery && matchesStatus) ? '' : 'none';
+            });
+        }
+
+        async function deleteQuiz(id) {
+            if (!confirm('Are you sure you want to permanently delete this assessment and all student submissions?')) {
+                return;
+            }
+
+            try {
+                const response = await AppAuth.fetchAuth(`/api/quizzes/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response && (response.ok || response.status === 204)) {
+                    showToast('Assessment deleted successfully', 'success');
+                    setTimeout(() => window.location.reload(), 700);
+                } else {
+                    showToast('Failed to delete assessment', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Network error while deleting assessment', 'error');
+            }
+        }
+
+        async function exportQuizCsv(quizId) {
+            try {
+                const response = await AppAuth.fetchAuth(`/api/admin/quizzes/${quizId}/export`);
+                if (response && response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `quiz_${quizId}_results.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    showToast('CSV downloaded successfully', 'success');
+                } else {
+                    showToast('Failed to export CSV', 'error');
+                }
+            } catch (e) {
+                showToast('Error exporting CSV', 'error');
+            }
+        }
+
+        async function exportGlobalCsv() {
+            try {
+                const response = await AppAuth.fetchAuth(`/api/admin/results/export`);
+                if (response && response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `all_quiz_results.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    showToast('Global CSV roster downloaded successfully', 'success');
+                } else {
+                    showToast('Failed to export CSV', 'error');
+                }
+            } catch (e) {
+                showToast('Error exporting CSV', 'error');
+            }
+        }
+    </script>
+</div>
+</body>
+</html>

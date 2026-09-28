@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Create New Quiz &bull; Admin Portal</title>
+</head>
+<body>
+<div th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <a th:href="@{/admin/dashboard}" class="text-muted small d-inline-flex align-items-center mb-1">
+                <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+            </a>
+            <h2 class="fw-bold mb-0">Create New Assessment</h2>
+        </div>
+    </div>
+
+    <form id="createQuizForm">
+        <!-- Quiz Metadata Card -->
+        <div class="card p-4 mb-4 shadow-sm">
+            <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-card-heading me-2"></i>Quiz Information</h5>
+
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label for="quizTitle" class="form-label fw-semibold">Quiz Title *</label>
+                    <input type="text" class="form-control" id="quizTitle" required placeholder="e.g. Modern Java 21 &amp; Concurrency">
+                </div>
+                <div class="col-md-4">
+                    <label for="quizDuration" class="form-label fw-semibold">Duration (Minutes) *</label>
+                    <input type="number" class="form-control" id="quizDuration" required min="1" max="180" value="10">
+                </div>
+                <div class="col-12">
+                    <label for="quizDescription" class="form-label fw-semibold">Description</label>
+                    <textarea class="form-control" id="quizDescription" rows="2" placeholder="Brief summary of syllabus, goals, and topics covered..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Questions Section -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0">Questions &amp; Answers</h4>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addQuestion()">
+                <i class="bi bi-plus-circle me-1"></i> Add Question
+            </button>
+        </div>
+
+        <div id="questionsContainer">
+            <!-- Questions injected by JavaScript -->
+        </div>
+
+        <div class="text-end mt-4 mb-5">
+            <a th:href="@{/admin/dashboard}" class="btn btn-light border me-2">Cancel</a>
+            <button type="submit" id="submitCreateBtn" class="btn btn-primary px-5 py-2 fw-semibold">
+                <i class="bi bi-check2-circle me-1"></i> Save &amp; Publish Quiz
+            </button>
+        </div>
+    </form>
+
+    <script>
+        let questionCounter = 0;
+
+        function addQuestion() {
+            questionCounter++;
+            const qId = questionCounter;
+
+            const qCard = document.createElement('div');
+            qCard.className = 'card p-4 mb-3 question-entry-card shadow-sm';
+            qCard.id = `qCard_${qId}`;
+
+            qCard.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold text-dark mb-0">Question <span class="q-number"></span></h6>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(${qId})">
+                        <i class="bi bi-trash"></i> Remove
+                    </button>
+                </div>
+
+                <div class="mb-3">
+                    <textarea class="form-control question-text" rows="2" placeholder="Enter question statement here..." required></textarea>
+                </div>
+
+                <div class="options-wrapper mb-2">
+                    <label class="form-label small fw-semibold text-muted">Answer Options (Select the radio of the correct answer):</label>
+                    <div class="options-list" id="optionsList_${qId}"></div>
+                </div>
+
+                <div>
+                    <button type="button" class="btn btn-sm btn-link text-primary p-0" onclick="addOptionToQuestion(${qId})">
+                        <i class="bi bi-plus"></i> Add Another Option
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('questionsContainer').appendChild(qCard);
+
+            // Add 4 default options
+            addOptionToQuestion(qId, '', true);
+            addOptionToQuestion(qId, '', false);
+            addOptionToQuestion(qId, '', false);
+            addOptionToQuestion(qId, '', false);
+
+            updateQuestionNumbers();
+        }
+
+        function removeQuestion(qId) {
+            const card = document.getElementById(`qCard_${qId}`);
+            if (card) {
+                card.remove();
+                updateQuestionNumbers();
+            }
+        }
+
+        function updateQuestionNumbers() {
+            const cards = document.querySelectorAll('.question-entry-card');
+            cards.forEach((card, index) => {
+                card.querySelector('.q-number').textContent = (index + 1);
+            });
+        }
+
+        function addOptionToQuestion(qId, text = '', isCorrect = false) {
+            const container = document.getElementById(`optionsList_${qId}`);
+            const optIndex = container.children.length;
+
+            const row = document.createElement('div');
+            row.className = 'input-group mb-2 option-row';
+            row.innerHTML = `
+                <div class="input-group-text bg-light">
+                    <input class="form-check-input mt-0 correct-radio" type="radio" name="correctOpt_${qId}" ${isCorrect ? 'checked' : ''} title="Mark as correct answer" required>
+                </div>
+                <input type="text" class="form-control option-text" placeholder="Option text..." value="${text}" required>
+                <button class="btn btn-outline-secondary" type="button" onclick="this.closest('.option-row').remove()">
+                    <i class="bi bi-x"></i>
+                </button>
+            `;
+            container.appendChild(row);
+        }
+
+        // Initialize with 1 question
+        addQuestion();
+
+        document.getElementById('createQuizForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitCreateBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving quiz...';
+
+            const questionCards = document.querySelectorAll('.question-entry-card');
+            if (questionCards.length === 0) {
+                showToast('Please add at least one question', 'error');
+                btn.disabled = false;
+                btn.innerHTML = 'Save &amp; Publish Quiz';
+                return;
+            }
+
+            const questionsPayload = [];
+
+            for (const card of questionCards) {
+                const qText = card.querySelector('.question-text').value.trim();
+                const optionRows = card.querySelectorAll('.option-row');
+
+                if (optionRows.length < 2) {
+                    showToast('Each question must have at least 2 options', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = 'Save &amp; Publish Quiz';
+                    return;
+                }
+
+                let hasCorrect = false;
+                const optionsPayload = [];
+
+                for (const row of optionRows) {
+                    const optText = row.querySelector('.option-text').value.trim();
+                    const isCorrect = row.querySelector('.correct-radio').checked;
+                    if (isCorrect) hasCorrect = true;
+
+                    optionsPayload.push({
+                        text: optText,
+                        isCorrect: isCorrect
+                    });
+                }
+
+                if (!hasCorrect) {
+                    showToast('Please select a correct answer for all questions', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = 'Save &amp; Publish Quiz';
+                    return;
+                }
+
+                questionsPayload.push({
+                    text: qText,
+                    options: optionsPayload
+                });
+            }
+
+            const quizPayload = {
+                title: document.getElementById('quizTitle').value.trim(),
+                description: document.getElementById('quizDescription').value.trim(),
+                durationMinutes: parseInt(document.getElementById('quizDuration').value, 10),
+                questions: questionsPayload
+            };
+
+            try {
+                const response = await AppAuth.fetchAuth('/api/quizzes', {
+                    method: 'POST',
+                    body: JSON.stringify(quizPayload)
+                });
+
+                if (response && (response.ok || response.status === 201)) {
+                    showToast('Quiz created and published successfully!', 'success');
+                    setTimeout(() => window.location.href = '/admin/dashboard', 1000);
+                } else {
+                    const err = await response.json();
+                    showToast(err.message || 'Failed to create quiz', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = 'Save &amp; Publish Quiz';
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Network error while saving quiz', 'error');
+                btn.disabled = false;
+                btn.innerHTML = 'Save &amp; Publish Quiz';
+            }
+        });
+    </script>
+</div>
+</body>
+</html>

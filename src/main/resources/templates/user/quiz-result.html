@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::content})}">
+<head>
+    <title th:text="${'Result: ' + result.quizTitle + ' &bull; Online Quiz Platform'}">Quiz Results</title>
+</head>
+<body>
+<div th:fragment="content">
+    <!-- Result Summary Banner -->
+    <div class="card result-banner-card p-4 p-md-5 mb-4 text-center border-0 shadow-lg"
+         th:classappend="${result.percentage >= 70 ? 'bg-success bg-opacity-10' : (result.percentage >= 50 ? 'bg-warning bg-opacity-10' : 'bg-danger bg-opacity-10')}">
+
+        <!-- Result Badge Header -->
+        <div class="mb-3">
+            <span th:if="${result.percentage >= 70}" class="badge bg-success px-4 py-2 fs-6 rounded-pill shadow-sm">
+                <i class="bi bi-patch-check-fill me-1"></i> Passed with Excellence
+            </span>
+            <span th:if="${result.percentage >= 50 and result.percentage < 70}" class="badge bg-warning text-dark px-4 py-2 fs-6 rounded-pill shadow-sm">
+                <i class="bi bi-exclamation-circle-fill me-1"></i> Passed &bull; Review Recommended
+            </span>
+            <span th:if="${result.percentage < 50}" class="badge bg-danger px-4 py-2 fs-6 rounded-pill shadow-sm">
+                <i class="bi bi-x-circle-fill me-1"></i> Assessment Incomplete &bull; Needs Practice
+            </span>
+        </div>
+
+        <h2 class="fw-bold mb-1" th:text="${result.quizTitle}">Assessment Title</h2>
+        <p class="text-muted mb-3">Assessment completed by <strong class="text-dark" th:text="${result.username}">user</strong></p>
+
+        <!-- Dynamic Score Display -->
+        <div class="d-flex justify-content-center align-items-baseline gap-1 my-3">
+            <div class="badge-score"
+                 th:classappend="${result.percentage >= 70 ? 'text-success' : (result.percentage >= 50 ? 'text-warning' : 'text-danger')}"
+                 th:text="${result.percentage + '%'}">80%</div>
+        </div>
+
+        <!-- 4 Metric Cards -->
+        <div class="row g-3 justify-content-center mt-3">
+            <div class="col-6 col-sm-3">
+                <div class="card p-3 text-center h-100 shadow-sm">
+                    <div class="text-muted small fw-semibold text-uppercase">Final Score</div>
+                    <div class="fs-4 fw-bold text-primary mt-1" th:text="${result.score + ' / ' + result.totalQuestions}">4 / 5</div>
+                </div>
+            </div>
+            <div class="col-6 col-sm-3">
+                <div class="card p-3 text-center h-100 shadow-sm">
+                    <div class="text-muted small fw-semibold text-uppercase">Accuracy</div>
+                    <div class="fs-4 fw-bold text-success mt-1" th:text="${result.correctAnswers + ' of ' + result.totalQuestions}">4 of 5</div>
+                </div>
+            </div>
+            <div class="col-6 col-sm-3">
+                <div class="card p-3 text-center h-100 shadow-sm">
+                    <div class="text-muted small fw-semibold text-uppercase">Time Taken</div>
+                    <div class="fs-4 fw-bold text-info mt-1" th:text="${(result.durationTakenSeconds / 60) + 'm ' + (result.durationTakenSeconds % 60) + 's'}">2m 45s</div>
+                </div>
+            </div>
+            <div class="col-6 col-sm-3">
+                <div class="card p-3 text-center h-100 shadow-sm">
+                    <div class="text-muted small fw-semibold text-uppercase">Status</div>
+                    <div class="fs-4 fw-bold mt-1"
+                         th:classappend="${result.passed ? 'text-success' : 'text-danger'}"
+                         th:text="${result.passed ? 'PASSED' : 'FAILED'}">PASSED</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex flex-wrap justify-content-center gap-3 mt-4 pt-2">
+            <button th:if="${result.percentage >= 50}" type="button" class="btn btn-warning text-dark fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#certificateModal">
+                <i class="bi bi-award-fill me-1"></i> View Certificate
+            </button>
+            <a th:href="@{'/quizzes/' + ${result.quizId}}" class="btn btn-outline-primary">
+                <i class="bi bi-trophy me-1"></i> Leaderboard
+            </a>
+            <a th:href="@{'/quizzes/' + ${result.quizId} + '/attempt'}" class="btn btn-primary">
+                <i class="bi bi-arrow-repeat me-1"></i> Retake Assessment
+            </a>
+            <a th:href="@{/dashboard}" class="btn btn-light border">
+                <i class="bi bi-house me-1"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Detailed Question Review Section -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold mb-2 mb-md-0"><i class="bi bi-journal-check me-2 text-primary"></i>Detailed Question Analysis</h4>
+        <!-- Review Filter Tabs -->
+        <div class="d-flex gap-2">
+            <button type="button" class="category-filter-pill active" onclick="filterReview('all', this)">All Questions (<span th:text="${result.questionResults.size()}">5</span>)</button>
+            <button type="button" class="category-filter-pill" onclick="filterReview('correct', this)">Correct (<span th:text="${result.correctAnswers}">4</span>)</button>
+            <button type="button" class="category-filter-pill" onclick="filterReview('incorrect', this)">Incorrect (<span th:text="${result.wrongAnswers + result.unansweredQuestions}">1</span>)</button>
+        </div>
+    </div>
+
+    <div th:each="qr, stat : ${result.questionResults}"
+         class="card p-4 mb-3 result-card shadow-sm review-card"
+         th:data-status="${qr.isCorrect ? 'correct' : 'incorrect'}"
+         th:classappend="${qr.isCorrect ? 'correct' : 'incorrect'}">
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="badge px-3 py-1.5" th:classappend="${qr.isCorrect ? 'bg-success' : 'bg-danger'}">
+                <i th:class="${qr.isCorrect ? 'bi bi-check-circle-fill me-1' : 'bi bi-x-circle-fill me-1'}"></i>
+                <span th:text="${qr.isCorrect ? 'Correct Answer' : 'Incorrect'}">Correct</span>
+            </span>
+            <span class="text-muted small" th:text="'Question ' + ${stat.count} + ' of ' + ${result.questionResults.size()}">Question 1 of 5</span>
+        </div>
+
+        <h5 class="fw-semibold text-dark mb-3 lh-base" th:text="${qr.questionText}">Question text</h5>
+
+        <div class="options-review">
+            <div th:each="opt : ${qr.allOptions}"
+                 class="p-3 rounded-3 mb-2 border d-flex justify-content-between align-items-center transition-all"
+                 th:classappend="${opt.id == qr.correctOptionId ? 'bg-success bg-opacity-10 border-success text-success fw-semibold' : (opt.id == qr.selectedOptionId ? 'bg-danger bg-opacity-10 border-danger text-danger' : 'bg-surface-elevated')}">
+
+                <div class="d-flex align-items-center gap-2">
+                    <span th:if="${opt.id == qr.correctOptionId}" class="badge bg-success">Correct Choice</span>
+                    <span th:if="${opt.id == qr.selectedOptionId && !qr.isCorrect}" class="badge bg-danger">Your Choice</span>
+                    <span th:if="${opt.id == qr.selectedOptionId && qr.isCorrect}" class="badge bg-success">Your Choice</span>
+                    <span th:text="${opt.text}">Option text</span>
+                </div>
+
+                <div>
+                    <i th:if="${opt.id == qr.correctOptionId}" class="bi bi-check-circle-fill text-success fs-5"></i>
+                    <i th:if="${opt.id == qr.selectedOptionId && !qr.isCorrect}" class="bi bi-x-circle-fill text-danger fs-5"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Certificate of Achievement Modal -->
+    <div class="modal fade" id="certificateModal" tabindex="-1" aria-labelledby="certificateModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 p-md-5">
+                    <div class="certificate-frame" id="printableCertificate">
+                        <div class="certificate-badge-seal mb-3">
+                            <i class="bi bi-trophy-fill fs-3"></i>
+                            <span>HONOR</span>
+                        </div>
+                        <div class="certificate-header-title mb-1">Certificate of Achievement</div>
+                        <p class="text-muted text-uppercase tracking-wider small mb-4">Online Quiz Examination Board</p>
+
+                        <p class="fs-6 text-muted mb-1">This is proudly presented to</p>
+                        <h2 class="fw-bold text-dark mb-3 text-capitalize" th:text="${result.username}">Participant Name</h2>
+
+                        <p class="text-secondary max-w-lg mx-auto mb-4">
+                            for demonstrating exceptional domain competence and successfully completing the assessment:
+                            <br><strong class="fs-5 text-primary" th:text="${result.quizTitle}">Assessment Name</strong>
+                        </p>
+
+                        <div class="d-flex justify-content-center gap-4 my-4 py-2 border-top border-bottom">
+                            <div>
+                                <div class="small text-muted text-uppercase">Score Achieved</div>
+                                <strong class="fs-4 text-success" th:text="${result.percentage + '%'}">85%</strong>
+                            </div>
+                            <div class="border-end"></div>
+                            <div>
+                                <div class="small text-muted text-uppercase">Date Completed</div>
+                                <strong class="fs-6 text-dark" th:text="${#temporals.format(result.endTime, 'MMMM dd, yyyy')}">Sep 29, 2026</strong>
+                            </div>
+                            <div class="border-end"></div>
+                            <div>
+                                <div class="small text-muted text-uppercase">Verification ID</div>
+                                <strong class="fs-6 text-muted font-monospace" th:text="${'CERT-' + result.attemptId + '-V' + (result.quizId * 17)}">CERT-1029</strong>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-end mt-4 pt-3 text-start small text-muted">
+                            <div>
+                                <div>Authorized Registrar</div>
+                                <div class="fw-bold text-dark">OnlineQuiz System Controller</div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1">Verified Credential</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="window.print()">
+                        <i class="bi bi-printer me-1"></i> Print / Save PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Scripts & Confetti -->
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const userPercentage = /*[[${result.percentage}]]*/ 80;
+
+        // Trigger celebratory confetti on high scores
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof confetti === 'function' && userPercentage >= 50) {
+                // Initial burst
+                confetti({
+                    particleCount: userPercentage >= 70 ? 120 : 60,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+
+                if (userPercentage >= 70) {
+                    // Follow-up star burst
+                    setTimeout(() => {
+                        confetti({
+                            particleCount: 80,
+                            angle: 60,
+                            spread: 55,
+                            origin: { x: 0 }
+                        });
+                        confetti({
+                            particleCount: 80,
+                            angle: 120,
+                            spread: 55,
+                            origin: { x: 1 }
+                        });
+                    }, 400);
+                }
+            }
+        });
+
+        // Filter Review Questions by Correct / Incorrect
+        function filterReview(type, btn) {
+            document.querySelectorAll('.category-filter-pill').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+
+            const cards = document.querySelectorAll('.review-card');
+            cards.forEach(card => {
+                const status = card.getAttribute('data-status');
+                if (type === 'all') {
+                    card.style.display = '';
+                } else if (type === status) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+        /*]]>*/
+    </script>
+</div>
+</body>
+</html>

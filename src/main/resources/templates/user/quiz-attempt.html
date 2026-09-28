@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${'Exam: ' + attempt.quizTitle + ' &bull; Online Quiz Platform'}">Attempt Quiz</title>
+
+    <!-- Immediate Theme Mode Initialization -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('quiz_theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = savedTheme ? savedTheme : (prefersDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-bs-theme', theme);
+        })();
+    </script>
+
+    <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" th:href="@{/css/custom.css}">
+</head>
+<body>
+
+    <!-- Sticky Exam Timer & Control Header -->
+    <div class="sticky-timer-header py-2 px-3 px-md-4">
+        <div class="container d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <div class="brand-icon-box d-none d-sm-flex" style="width: 34px; height: 34px; font-size: 1.1rem;">
+                    <i class="bi bi-mortarboard-fill"></i>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-0.5" style="font-size: 0.72rem;">ACTIVE ASSESSMENT</span>
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary d-none d-md-inline" th:text="${attempt.questions.size() + ' Questions'}">5 Questions</span>
+                    </div>
+                    <h5 class="fw-bold mb-0 text-truncate" style="max-width: 320px;" th:text="${attempt.quizTitle}">Assessment Title</h5>
+                </div>
+            </div>
+
+            <!-- Toolbar Controls (Sound, Font Size, Fullscreen, Timer) -->
+            <div class="d-flex align-items-center gap-2 gap-md-3">
+                <div class="d-none d-md-flex align-items-center gap-1">
+                    <!-- Text Resizer -->
+                    <button type="button" class="exam-tool-btn" onclick="quizManager.adjustFontSize(-1)" title="Decrease Text Size">
+                        <i class="bi bi-type"></i>-
+                    </button>
+                    <button type="button" class="exam-tool-btn" onclick="quizManager.adjustFontSize(1)" title="Increase Text Size">
+                        <i class="bi bi-type"></i>+
+                    </button>
+                    <!-- Audio Sound Toggle -->
+                    <button type="button" class="exam-tool-btn" onclick="AppAudio.toggleSound()" title="Toggle Audio Feedback">
+                        <i class="bi bi-volume-up-fill sound-toggle-icon"></i>
+                    </button>
+                    <!-- Fullscreen Toggle -->
+                    <button type="button" id="btnFullscreen" class="exam-tool-btn" onclick="quizManager.toggleFullscreen()" title="Toggle Focus Mode">
+                        <i class="bi bi-arrows-fullscreen"></i> Focus Mode
+                    </button>
+                    <!-- Keyboard Shortcuts Guide -->
+                    <button type="button" class="exam-tool-btn" data-bs-toggle="modal" data-bs-target="#shortcutsModal" title="Keyboard Shortcuts">
+                        <i class="bi bi-keyboard"></i>
+                    </button>
+                </div>
+
+                <!-- Live Timer Badge -->
+                <div class="text-end ps-2 ps-md-3 border-start">
+                    <div class="small text-muted fw-bold text-uppercase" style="font-size: 0.7rem;">Time Remaining</div>
+                    <div id="timerDisplay" class="timer-badge fs-3 fw-bold">--:--</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timer Progress Bar -->
+        <div class="progress mt-2" style="height: 5px; background: rgba(0,0,0,0.06);">
+            <div id="timerProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 100%"></div>
+        </div>
+    </div>
+
+    <!-- Main Exam Container -->
+    <div class="container py-4">
+        <form id="quizAttemptForm">
+            <div class="row g-4">
+                <!-- Question Feed -->
+                <div class="col-lg-8">
+                    <div th:each="q, qStat : ${attempt.questions}"
+                         class="card card-interactive p-4 mb-4 question-block"
+                         th:id="'question-card-' + ${q.id}"
+                         th:data-question-id="${q.id}">
+
+                        <!-- Question Top Metadata & Flag Toggle -->
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary bg-opacity-10 text-primary fw-bold px-3 py-1.5 rounded-pill">
+                                    Question <span th:text="${qStat.count}">1</span> of <span th:text="${attempt.questions.size()}">5</span>
+                                </span>
+                                <span class="badge bg-light text-muted border">1 Point</span>
+                            </div>
+
+                            <!-- Flag for Review Button -->
+                            <button type="button"
+                                    th:id="'flag-btn-' + ${q.id}"
+                                    class="btn-flag-question"
+                                    th:onclick="'quizManager.toggleFlag(' + ${q.id} + ')'"
+                                    title="Mark this question to review later">
+                                <i class="bi bi-flag"></i> Flag for Review
+                            </button>
+                        </div>
+
+                        <!-- Question Statement Text -->
+                        <h5 class="fw-bold mb-4 lh-base question-statement" th:text="${q.text}">What is Virtual Threads?</h5>
+
+                        <!-- Interactive Options -->
+                        <div class="options-container">
+                            <div th:each="opt, optStat : ${q.options}">
+                                <input type="radio"
+                                       class="quiz-option-input"
+                                       th:id="'opt-' + ${opt.id}"
+                                       th:name="'question_' + ${q.id}"
+                                       th:value="${opt.id}"
+                                       th:data-question-id="${q.id}">
+                                <label th:for="'opt-' + ${opt.id}" class="quiz-option-label">
+                                    <div class="d-flex align-items-center">
+                                        <div class="quiz-option-letter" th:text="${#strings.substring('ABCDEFGHIJKLMNOPQRSTUVWXYZ', optStat.index, optStat.index + 1)}">A</div>
+                                        <div class="flex-grow-1" th:text="${opt.text}">Option statement text</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sticky Sidebar: Navigator & Live Audit -->
+                <div class="col-lg-4">
+                    <div class="card p-4 shadow-sm sticky-top" style="top: 90px;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold text-uppercase text-muted small mb-0">Question Navigator</h6>
+                            <span class="badge bg-primary bg-opacity-10 text-primary" th:text="${attempt.questions.size() + ' Total'}">5 Total</span>
+                        </div>
+
+                        <!-- Navigator Filter Tabs -->
+                        <div class="d-flex gap-1 mb-3">
+                            <button type="button" class="btn btn-sm btn-outline-secondary filter-tab-btn active px-2 py-1" data-filter="all" onclick="quizManager.filterPalette('all')">All</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary filter-tab-btn px-2 py-1" data-filter="answered" onclick="quizManager.filterPalette('answered')">Answered</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary filter-tab-btn px-2 py-1" data-filter="flagged" onclick="quizManager.filterPalette('flagged')">Flagged</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary filter-tab-btn px-2 py-1" data-filter="unanswered" onclick="quizManager.filterPalette('unanswered')">Unanswered</button>
+                        </div>
+
+                        <!-- Question Navigator Palette Buttons -->
+                        <div class="d-flex flex-wrap gap-2 mb-4" id="questionPaletteContainer">
+                            <a th:each="q, qStat : ${attempt.questions}"
+                               th:href="'#question-card-' + ${q.id}"
+                               th:id="'nav-btn-' + ${q.id}"
+                               class="question-nav-btn text-decoration-none"
+                               th:text="${qStat.count}">1</a>
+                        </div>
+
+                        <!-- Live Palette Legend & Stats -->
+                        <div class="bg-surface-elevated p-3 rounded-3 border mb-4 small">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <div><span class="palette-legend-dot bg-success"></span>Answered:</div>
+                                <strong id="statAnsweredCount" class="text-success">0</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <div><span class="palette-legend-dot bg-warning"></span>Flagged for Review:</div>
+                                <strong id="statFlaggedCount" class="text-warning">0</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div><span class="palette-legend-dot bg-secondary"></span>Unanswered:</div>
+                                <strong id="statUnansweredCount" class="text-secondary" th:text="${attempt.questions.size()}">5</strong>
+                            </div>
+                        </div>
+
+                        <!-- Submit Assessment Button -->
+                        <div class="border-top pt-3">
+                            <button type="button" class="btn btn-success w-100 py-3 fw-bold fs-6 shadow-sm d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal" data-bs-target="#confirmSubmitModal">
+                                <i class="bi bi-check2-circle fs-5"></i> Submit Assessment
+                            </button>
+                            <p class="small text-muted text-center mt-2 mb-0">Answers evaluated instantly with instant breakdown.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Confirm Submit Audit Modal -->
+    <div class="modal fade" id="confirmSubmitModal" tabindex="-1" aria-labelledby="confirmSubmitModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="confirmSubmitModalLabel">Ready to submit assessment?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div id="submitAuditText">
+                        <!-- Populated by JavaScript audit -->
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Keep Reviewing</button>
+                    <button type="button" id="submitQuizBtn" class="btn btn-primary px-4 fw-semibold" onclick="quizManager.submitQuiz(false)">
+                        Yes, Submit Final Answers
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div class="modal fade" id="shortcutsModal" tabindex="-1" aria-labelledby="shortcutsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0 pb-2">
+                    <h6 class="modal-title fw-bold" id="shortcutsModalLabel"><i class="bi bi-keyboard me-2"></i>Keyboard Shortcuts</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-2">
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            <tr>
+                                <td><kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd> / <kbd>4</kbd></td>
+                                <td class="text-end text-muted">Select option A, B, C, D</td>
+                            </tr>
+                            <tr>
+                                <td><kbd>F</kbd></td>
+                                <td class="text-end text-muted">Toggle Flag for Review</td>
+                            </tr>
+                            <tr>
+                                <td><kbd>A</kbd> - <kbd>D</kbd></td>
+                                <td class="text-end text-muted">Select option by letter</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-primary w-100" data-bs-dismiss="modal">Got it</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/app.js}"></script>
+    <script th:src="@{/js/quiz-timer.js}"></script>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const attemptId = /*[[${attempt.attemptId}]]*/ 1;
+        const quizId = /*[[${attempt.quizId}]]*/ 1;
+        const remainingSeconds = /*[[${attempt.remainingSeconds}]]*/ 300;
+        const totalDurationMinutes = /*[[${attempt.durationMinutes}]]*/ 5;
+
+        const quizManager = new QuizAttemptManager({
+            attemptId: attemptId,
+            quizId: quizId,
+            remainingSeconds: remainingSeconds,
+            totalSeconds: totalDurationMinutes * 60,
+            timerDisplayId: 'timerDisplay',
+            progressBarId: 'timerProgressBar',
+            formId: 'quizAttemptForm',
+            submitButtonId: 'submitQuizBtn'
+        });
+        /*]]>*/
+    </script>
+</body>
+</html>

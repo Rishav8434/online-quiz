@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Participant Dashboard &bull; Online Quiz Platform</title>
+</head>
+<body>
+<div th:fragment="content">
+    <!-- Hero Welcome Banner -->
+    <div class="hero-banner p-4 p-md-5 mb-4">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <span class="badge bg-white bg-opacity-25 text-white mb-2 px-3 py-1 rounded-pill">ACADEMIC HUB</span>
+                <h1 class="display-6 fw-bold mb-2">Welcome back, <span th:text="${currentUser.fullName}">Student</span>!</h1>
+                <p class="lead mb-0 text-white-50" style="font-size: 1.05rem;">
+                    Track your learning milestones, review test analytics, and prepare for certification assessments.
+                </p>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                <a th:href="@{/quizzes}" class="btn btn-light fw-bold px-4 py-2 text-primary shadow">
+                    <i class="bi bi-play-circle-fill me-1"></i> Start New Quiz
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Overview Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card stat-card p-3 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase">Total Attempts</div>
+                        <div class="fs-2 fw-bold text-dark mt-1" th:text="${totalAttempts}">0</div>
+                    </div>
+                    <div class="stat-icon-circle bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-journal-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card stat-card stat-success p-3 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase">Average Score</div>
+                        <div class="fs-2 fw-bold text-success mt-1"><span th:text="${avgScore}">0.0</span>%</div>
+                    </div>
+                    <div class="stat-icon-circle bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card stat-card stat-warning p-3 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase">Assessments Passed</div>
+                        <div class="fs-2 fw-bold text-warning mt-1" th:text="${passedCount}">0</div>
+                    </div>
+                    <div class="stat-icon-circle bg-warning bg-opacity-10 text-warning">
+                        <i class="bi bi-trophy-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card stat-card p-3 shadow-sm h-100" style="border-left-color: #8b5cf6;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase">Catalog Available</div>
+                        <div class="fs-2 fw-bold text-dark mt-1" th:text="${availableQuizzes.size()}">0</div>
+                    </div>
+                    <div class="stat-icon-circle bg-purple bg-opacity-10" style="color: #8b5cf6; background: rgba(139, 92, 246, 0.1);">
+                        <i class="bi bi-collection-play-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart & Achievements Row -->
+    <div class="row g-4 mb-4">
+        <!-- Performance Trajectory Chart -->
+        <div class="col-lg-8">
+            <div class="card p-4 h-100 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-bezier2 me-2 text-primary"></i>Score Trajectory &bull; Recent Attempts</h5>
+                    <span class="badge bg-light text-muted border">Accuracy Trend</span>
+                </div>
+
+                <div th:if="${#lists.isEmpty(recentAttempts)}" class="text-center py-5 text-muted">
+                    <i class="bi bi-bar-chart-line fs-1 d-block mb-2 text-secondary"></i>
+                    <p class="mb-2">No attempts recorded yet to chart your trajectory.</p>
+                    <a th:href="@{/quizzes}" class="btn btn-sm btn-primary">Take an assessment to unlock analytics</a>
+                </div>
+
+                <div th:if="${not #lists.isEmpty(recentAttempts)}" style="height: 250px; position: relative;">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gamified Badges Card -->
+        <div class="col-lg-4">
+            <div class="card p-4 h-100 shadow-sm">
+                <h5 class="fw-bold mb-3"><i class="bi bi-award-fill me-2 text-warning"></i>Milestone Badges</h5>
+
+                <div class="d-flex flex-column gap-3">
+                    <!-- Badge 1: Initiator -->
+                    <div class="achievement-badge" th:classappend="${totalAttempts > 0 ? '' : 'opacity-50'}">
+                        <div class="achievement-icon bg-primary bg-opacity-10 text-primary">
+                            <i class="bi bi-rocket-takeoff-fill"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark">First Step</div>
+                            <small class="text-muted">Completed your first online assessment</small>
+                        </div>
+                    </div>
+
+                    <!-- Badge 2: Honor Student -->
+                    <div class="achievement-badge" th:classappend="${passedCount > 0 ? '' : 'opacity-50'}">
+                        <div class="achievement-icon bg-success bg-opacity-10 text-success">
+                            <i class="bi bi-check-all"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark">Certified Scholar</div>
+                            <small class="text-muted">Passed an assessment with &ge;70% score</small>
+                        </div>
+                    </div>
+
+                    <!-- Badge 3: Master Mind -->
+                    <div class="achievement-badge" th:classappend="${totalAttempts >= 3 ? '' : 'opacity-50'}">
+                        <div class="achievement-icon bg-warning bg-opacity-10 text-warning">
+                            <i class="bi bi-lightning-charge-fill"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark">Domain Explorer</div>
+                            <small class="text-muted">Tested across 3 or more assessments</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Attempts & Available Quizzes -->
+    <div class="row g-4">
+        <!-- Recent Quiz Attempts Table -->
+        <div class="col-lg-7">
+            <div class="card p-4 h-100 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">Recent Quiz History</h5>
+                    <a th:href="@{/history}" class="small text-primary fw-semibold">View All History &rarr;</a>
+                </div>
+
+                <div th:if="${#lists.isEmpty(recentAttempts)}" class="text-center py-5 text-muted">
+                    <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary"></i>
+                    <p class="mb-2">No quiz attempts recorded yet.</p>
+                    <a th:href="@{/quizzes}" class="btn btn-sm btn-outline-primary">Start Your First Quiz</a>
+                </div>
+
+                <div th:if="${not #lists.isEmpty(recentAttempts)}" class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Assessment</th>
+                                <th>Score</th>
+                                <th>Accuracy</th>
+                                <th>Status</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="att : ${recentAttempts}">
+                                <td>
+                                    <div class="fw-bold text-dark" th:text="${att.quizTitle}">Assessment Name</div>
+                                    <small class="text-muted" th:text="${#temporals.format(att.startTime, 'MMM dd, yyyy')}">Date</small>
+                                </td>
+                                <td class="fw-semibold" th:text="${att.score + ' / ' + att.totalQuestions}">0/0</td>
+                                <td>
+                                    <span th:class="${att.percentage >= 70 ? 'badge bg-success' : (att.percentage >= 50 ? 'badge bg-warning text-dark' : 'badge bg-danger')}"
+                                          th:text="${att.percentage + '%'}">0%</span>
+                                </td>
+                                <td>
+                                    <span class="badge" th:classappend="${att.passed ? 'bg-success bg-opacity-10 text-success border border-success border-opacity-25' : 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25'}"
+                                          th:text="${att.passed ? 'Passed' : 'Failed'}">Passed</span>
+                                </td>
+                                <td class="text-end">
+                                    <a th:href="@{'/quizzes/' + ${att.quizId} + '/result?attemptId=' + ${att.attemptId}}" class="btn btn-sm btn-outline-primary">
+                                        Review
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Available Assessments Quick List -->
+        <div class="col-lg-5">
+            <div class="card p-4 h-100 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">Explore Assessments</h5>
+                    <a th:href="@{/quizzes}" class="small text-primary fw-semibold">View Catalog &rarr;</a>
+                </div>
+
+                <div class="list-group list-group-flush">
+                    <div th:each="q : ${availableQuizzes}" class="list-group-item px-0 py-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-bold text-dark" th:text="${q.title}">Assessment Title</div>
+                            <small class="text-muted">
+                                <i class="bi bi-clock me-1"></i><span th:text="${q.durationMinutes + ' mins'}">10 mins</span> &bull;
+                                <i class="bi bi-patch-question me-1"></i><span th:text="${q.totalQuestions + ' Qs'}">5 questions</span>
+                            </small>
+                        </div>
+                        <a th:href="@{'/quizzes/' + ${q.id}}" class="btn btn-sm btn-primary">Start</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Initialization Script -->
+    <script th:inline="javascript" th:if="${not #lists.isEmpty(recentAttempts)}">
+        /*<![CDATA[*/
+        document.addEventListener('DOMContentLoaded', () => {
+            const attemptsData = /*[[${recentAttempts}]]*/ [];
+            if (!attemptsData || attemptsData.length === 0) return;
+
+            // Reverse so oldest to newest is shown
+            const reversed = [...attemptsData].reverse();
+            const labels = reversed.map((a, idx) => `Attempt #${idx + 1} (${a.quizTitle.substring(0, 14)}...)`);
+            const scores = reversed.map(a => a.percentage);
+
+            const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+            const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
+            const textColor = isDark ? '#94a3b8' : '#64748b';
+
+            const ctx = document.getElementById('performanceChart');
+            if (ctx) {
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Score Percentage (%)',
+                            data: scores,
+                            borderColor: '#6366f1',
+                            backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.35,
+                            pointBackgroundColor: '#6366f1',
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: (ctx) => `Score: ${ctx.parsed.y}%`
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                min: 0,
+                                max: 100,
+                                grid: { color: gridColor },
+                                ticks: {
+                                    color: textColor,
+                                    callback: (val) => val + '%'
+                                }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: textColor }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+        /*]]>*/
+    </script>
+</div>
+</body>
+</html>

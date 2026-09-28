@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Registration Successful</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #1e293b; }
+        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .header { text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 24px; }
+        .header h1 { color: #4f46e5; margin: 0; font-size: 26px; }
+        .btn { display: inline-block; background-color: #4f46e5; color: #ffffff !important; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; margin-top: 20px; }
+        .footer { margin-top: 30px; text-align: center; font-size: 13px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 16px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Online Quiz Platform</h1>
+        </div>
+        <div>
+            <p>Hello <strong th:text="${fullName}">User</strong>,</p>
+            <p>Welcome to our Online Quiz Platform! Your account is active and you can now start taking quizzes or competing with peers.</p>
+            <div style="text-align: center;">
+                <a th:href="${appUrl + '/quizzes'}" class="btn">Explore Quizzes</a>
+            </div>
+        </div>
+        <div class="footer">
+            <p>&copy; 2026 Online Quiz Platform. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

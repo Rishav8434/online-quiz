@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::content})}">
+<head>
+    <title th:text="${'Honor Board: ' + quiz.title + ' &bull; Admin Portal'}">Quiz Leaderboard</title>
+</head>
+<body>
+<div th:fragment="content">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom gap-2">
+        <div>
+            <a th:href="@{/admin/dashboard}" class="text-muted small d-inline-flex align-items-center mb-1">
+                <i class="bi bi-arrow-left me-1"></i> Back to Admin Dashboard
+            </a>
+            <h2 class="fw-bold mb-0">Official Leaderboard &bull; <span th:text="${quiz.title}">Assessment</span></h2>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary" th:onclick="'exportQuizCsv(' + ${quiz.id} + ')'">
+                <i class="bi bi-download me-1"></i> Export Leaderboard CSV
+            </button>
+            <a th:href="@{'/admin/quizzes/' + ${quiz.id} + '/analytics'}" class="btn btn-primary">
+                <i class="bi bi-graph-up me-1"></i> View Analytics
+            </a>
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    <div th:if="${#lists.isEmpty(leaderboard)}" class="card p-5 text-center shadow-sm">
+        <div class="stat-icon-circle bg-light text-muted mx-auto mb-3" style="width: 72px; height: 72px; font-size: 2rem;">
+            <i class="bi bi-trophy"></i>
+        </div>
+        <h4>No Submissions Yet</h4>
+        <p class="text-muted mb-0">Participants have not completed any attempts for this assessment module yet.</p>
+    </div>
+
+    <!-- Podium & Leaderboard Table -->
+    <div th:if="${not #lists.isEmpty(leaderboard)}">
+        <!-- Top 3 Podium Cards -->
+        <div class="row g-3 mb-4 justify-content-center">
+            <!-- 1st Place Podium -->
+            <div th:if="${leaderboard.size() >= 1}" class="col-md-4">
+                <div class="card p-4 text-center shadow-sm h-100" style="border: 2px solid #f59e0b; background: rgba(245, 158, 11, 0.05);">
+                    <div class="stat-icon-circle bg-warning text-dark mx-auto mb-2" style="width: 56px; height: 56px;">
+                        <i class="bi bi-trophy-fill fs-3"></i>
+                    </div>
+                    <span class="badge bg-warning text-dark px-3 py-1 mb-2 font-monospace fw-bold">1ST PLACE</span>
+                    <h5 class="fw-bold text-dark mb-1" th:text="${leaderboard[0].fullName}">Champion Name</h5>
+                    <div class="text-muted small mb-2" th:text="'@' + ${leaderboard[0].username}">@username</div>
+                    <div class="fs-3 fw-bold text-warning" th:text="${leaderboard[0].percentage + '%'}">100%</div>
+                    <small class="text-muted" th:text="${(leaderboard[0].durationTakenSeconds / 60) + 'm ' + (leaderboard[0].durationTakenSeconds % 60) + 's'}">Time</small>
+                </div>
+            </div>
+
+            <!-- 2nd Place Podium -->
+            <div th:if="${leaderboard.size() >= 2}" class="col-md-4">
+                <div class="card p-4 text-center shadow-sm h-100" style="border: 2px solid #94a3b8; background: rgba(148, 163, 184, 0.05);">
+                    <div class="stat-icon-circle bg-secondary text-white mx-auto mb-2" style="width: 56px; height: 56px;">
+                        <i class="bi bi-award-fill fs-3"></i>
+                    </div>
+                    <span class="badge bg-secondary px-3 py-1 mb-2 font-monospace fw-bold">2ND PLACE</span>
+                    <h5 class="fw-bold text-dark mb-1" th:text="${leaderboard[1].fullName}">Second Place</h5>
+                    <div class="text-muted small mb-2" th:text="'@' + ${leaderboard[1].username}">@username</div>
+                    <div class="fs-3 fw-bold text-secondary" th:text="${leaderboard[1].percentage + '%'}">90%</div>
+                    <small class="text-muted" th:text="${(leaderboard[1].durationTakenSeconds / 60) + 'm ' + (leaderboard[1].durationTakenSeconds % 60) + 's'}">Time</small>
+                </div>
+            </div>
+
+            <!-- 3rd Place Podium -->
+            <div th:if="${leaderboard.size() >= 3}" class="col-md-4">
+                <div class="card p-4 text-center shadow-sm h-100" style="border: 2px solid #cd7f32; background: rgba(205, 127, 50, 0.05);">
+                    <div class="stat-icon-circle text-white mx-auto mb-2" style="width: 56px; height: 56px; background-color: #cd7f32;">
+                        <i class="bi bi-award-fill fs-3"></i>
+                    </div>
+                    <span class="badge px-3 py-1 mb-2 font-monospace fw-bold" style="background-color: #cd7f32; color: #fff;">3RD PLACE</span>
+                    <h5 class="fw-bold text-dark mb-1" th:text="${leaderboard[2].fullName}">Third Place</h5>
+                    <div class="text-muted small mb-2" th:text="'@' + ${leaderboard[2].username}">@username</div>
+                    <div class="fs-3 fw-bold" style="color: #cd7f32;" th:text="${leaderboard[2].percentage + '%'}">80%</div>
+                    <small class="text-muted" th:text="${(leaderboard[2].durationTakenSeconds / 60) + 'm ' + (leaderboard[2].durationTakenSeconds % 60) + 's'}">Time</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Table -->
+        <div class="card p-4 shadow-sm">
+            <h5 class="fw-bold mb-3">All Participant Standings</h5>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 90px;">Rank</th>
+                            <th>Participant</th>
+                            <th>Username</th>
+                            <th>Score</th>
+                            <th>Accuracy</th>
+                            <th>Duration</th>
+                            <th>Submitted Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="entry : ${leaderboard}">
+                            <td>
+                                <span th:if="${entry.rank == 1}" class="badge bg-warning text-dark fs-6 px-2.5 py-1"><i class="bi bi-trophy-fill me-1"></i>1st</span>
+                                <span th:if="${entry.rank == 2}" class="badge bg-secondary fs-6 px-2.5 py-1"><i class="bi bi-award-fill me-1"></i>2nd</span>
+                                <span th:if="${entry.rank == 3}" class="badge fs-6 px-2.5 py-1" style="background-color: #cd7f32; color: #fff;"><i class="bi bi-award-fill me-1"></i>3rd</span>
+                                <span th:if="${entry.rank > 3}" class="fw-bold text-muted ps-2" th:text="${'#' + entry.rank}">#4</span>
+                            </td>
+                            <td class="fw-bold text-dark" th:text="${entry.fullName}">Full Name</td>
+                            <td class="text-muted" th:text="'@' + ${entry.username}">@user</td>
+                            <td class="fw-semibold" th:text="${entry.score}">5</td>
+                            <td>
+                                <span th:class="${entry.percentage >= 70 ? 'badge bg-success' : (entry.percentage >= 50 ? 'badge bg-warning text-dark' : 'badge bg-danger')}"
+                                      th:text="${entry.percentage + '%'}">100%</span>
+                            </td>
+                            <td class="text-muted" th:text="${(entry.durationTakenSeconds / 60) + 'm ' + (entry.durationTakenSeconds % 60) + 's'}">2m 14s</td>
+                            <td class="text-muted small" th:text="${#temporals.format(entry.attemptedAt, 'MMM dd, yyyy HH:mm')}">Oct 12, 2026</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function exportQuizCsv(qId) {
+            try {
+                const response = await AppAuth.fetchAuth(`/api/admin/quizzes/${qId}/export`);
+                if (response && response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `quiz_${qId}_leaderboard.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    showToast('Leaderboard CSV exported successfully', 'success');
+                } else {
+                    showToast('Failed to export CSV', 'error');
+                }
+            } catch (e) {
+                showToast('Error exporting CSV', 'error');
+            }
+        }
+    </script>
+</div>
+</body>
+</html>

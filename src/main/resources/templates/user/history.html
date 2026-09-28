@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Attempt History &bull; Online Quiz Platform</title>
+</head>
+<body>
+<div th:fragment="content">
+    <div class="row align-items-center mb-4 pb-2 border-bottom">
+        <div class="col-md-7">
+            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-1 rounded-pill mb-2">PERSONAL TRANSCRIPT</span>
+            <h2 class="fw-bold mb-1">Assessment Records &amp; History</h2>
+            <p class="text-muted mb-0">Complete historical audit of your scores, time investment, and evaluations.</p>
+        </div>
+        <div class="col-md-5 text-md-end mt-3 mt-md-0">
+            <a th:href="@{/quizzes}" class="btn btn-primary">
+                <i class="bi bi-play-circle me-1"></i> Browse Assessments
+            </a>
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    <div th:if="${#lists.isEmpty(history)}" class="card p-5 text-center shadow-sm">
+        <div class="stat-icon-circle bg-light text-muted mx-auto mb-3" style="width: 72px; height: 72px; font-size: 2rem;">
+            <i class="bi bi-clock-history"></i>
+        </div>
+        <h4>No Assessment Attempts Recorded</h4>
+        <p class="text-muted mb-3">You haven't attempted any evaluations so far.</p>
+        <div>
+            <a th:href="@{/quizzes}" class="btn btn-primary px-4 py-2">Explore &amp; Take Your First Quiz</a>
+        </div>
+    </div>
+
+    <!-- History Table & Stats -->
+    <div th:if="${not #lists.isEmpty(history)}">
+        <!-- Quick stats summary row -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card p-3 shadow-sm border">
+                    <div class="small text-muted fw-bold text-uppercase">Total Records</div>
+                    <div class="fs-3 fw-bold text-primary" th:text="${history.size()}">0</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-3 shadow-sm border">
+                    <div class="small text-muted fw-bold text-uppercase">Passing Rate</div>
+                    <div class="fs-3 fw-bold text-success"
+                         th:text="${T(java.lang.Math).round((history.?[passed].size() * 100.0) / history.size()) + '%'}">0%</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-3 shadow-sm border">
+                    <div class="small text-muted fw-bold text-uppercase">Passed Tests</div>
+                    <div class="fs-3 fw-bold text-warning" th:text="${history.?[passed].size()}">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card p-4 shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Completed Date</th>
+                            <th>Assessment Name</th>
+                            <th>Score</th>
+                            <th>Accuracy</th>
+                            <th>Duration</th>
+                            <th>Result</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="att : ${history}">
+                            <td>
+                                <div class="fw-semibold text-dark" th:text="${#temporals.format(att.startTime, 'MMM dd, yyyy')}">Oct 12, 2026</div>
+                                <small class="text-muted" th:text="${#temporals.format(att.startTime, 'HH:mm')}">14:30</small>
+                            </td>
+                            <td>
+                                <div class="fw-bold text-dark" th:text="${att.quizTitle}">Java 21 Mastery</div>
+                            </td>
+                            <td>
+                                <strong class="text-dark" th:text="${att.score}">4</strong> / <span class="text-muted" th:text="${att.totalQuestions}">5</span>
+                            </td>
+                            <td>
+                                <span th:class="${att.percentage >= 70 ? 'badge bg-success' : (att.percentage >= 50 ? 'badge bg-warning text-dark' : 'badge bg-danger')}"
+                                      th:text="${att.percentage + '%'}">80%</span>
+                            </td>
+                            <td class="text-muted" th:text="${(att.durationTakenSeconds / 60) + 'm ' + (att.durationTakenSeconds % 60) + 's'}">3m 12s</td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${att.passed ? 'bg-success bg-opacity-10 text-success border border-success border-opacity-25' : 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25'}"
+                                      th:text="${att.passed ? 'PASSED' : 'FAILED'}">PASSED</span>
+                            </td>
+                            <td class="text-end">
+                                <a th:href="@{'/quizzes/' + ${att.quizId} + '/result?attemptId=' + ${att.attemptId}}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-file-earmark-check me-1"></i> Review
+                                </a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

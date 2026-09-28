@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::content})}">
+<head>
+    <title th:text="${quiz.title + ' &bull; Assessment Overview'}">Assessment Overview</title>
+</head>
+<body>
+<div th:fragment="content">
+    <div class="row g-4">
+        <!-- Main Details Column -->
+        <div class="col-lg-8">
+            <div class="card p-4 p-md-5 mb-4 shadow-sm">
+                <!-- Metadata Pills -->
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-1.5 rounded-pill">
+                        <i class="bi bi-clock-history me-1"></i> <span th:text="${quiz.durationMinutes + ' Minutes Duration'}">10 Minutes</span>
+                    </span>
+                    <span class="badge bg-surface-elevated text-secondary border px-3 py-1.5 rounded-pill">
+                        <i class="bi bi-patch-question me-1"></i> <span th:text="${quiz.totalQuestions + ' Total Questions'}">5 Questions</span>
+                    </span>
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-1.5 rounded-pill">
+                        <i class="bi bi-award me-1"></i> Passing Grade: 50%
+                    </span>
+                </div>
+
+                <h1 class="display-6 fw-bold mb-3 text-dark" th:text="${quiz.title}">Assessment Title</h1>
+                <p class="lead text-muted mb-4" style="font-size: 1.05rem;" th:text="${quiz.description}">Description text</p>
+
+                <!-- Rules & Exam Conduct Alert -->
+                <div class="card p-4 border-0 mb-4 rounded-4" style="background: rgba(99, 102, 241, 0.06); border-left: 4px solid var(--primary-color) !important;">
+                    <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-shield-check me-2"></i>Assessment Instructions &amp; Examination Conduct</h5>
+                    <ul class="mb-0 ps-3 small text-secondary d-flex flex-column gap-2">
+                        <li>The official countdown timer activates the instant you click <strong>Start Quiz Attempt</strong>.</li>
+                        <li>You may freely navigate between questions and use <strong>Flag for Review</strong> to revisit flagged items.</li>
+                        <li>Avoid closing or refreshing the tab; progress is kept live in memory.</li>
+                        <li>Upon time expiration, unsubmitted choices are automatically recorded and graded.</li>
+                        <li>Certified completion badge and detailed review are issued immediately after grading.</li>
+                    </ul>
+                </div>
+
+                <div class="d-flex flex-wrap gap-3">
+                    <a th:href="@{'/quizzes/' + ${quiz.id} + '/attempt'}" class="btn btn-primary btn-lg px-4 py-2.5 fw-bold shadow">
+                        <i class="bi bi-play-circle-fill me-2"></i> Start Assessment Now
+                    </a>
+                    <a th:href="@{/quizzes}" class="btn btn-light btn-lg px-4 py-2.5 border">
+                        <i class="bi bi-arrow-left me-1"></i> Back to Catalog
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard Column -->
+        <div class="col-lg-4">
+            <div class="card p-4 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-trophy-fill text-warning fs-4 me-2"></i>
+                        <h5 class="fw-bold mb-0">Honor Board</h5>
+                    </div>
+                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">Top Rankers</span>
+                </div>
+
+                <div th:if="${#lists.isEmpty(leaderboard)}" class="text-center py-5 text-muted small">
+                    <div class="stat-icon-circle bg-light text-muted mx-auto mb-2" style="width: 50px; height: 50px; font-size: 1.5rem;">
+                        <i class="bi bi-award"></i>
+                    </div>
+                    <p class="mb-0">No recorded completions yet.<br>Complete the assessment to claim #1 on the leaderboard!</p>
+                </div>
+
+                <div th:if="${not #lists.isEmpty(leaderboard)}" class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>Rank</th>
+                                <th>Participant</th>
+                                <th class="text-end">Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="entry, stat : ${leaderboard}">
+                                <td>
+                                    <span th:if="${stat.count == 1}" class="badge bg-warning text-dark"><i class="bi bi-trophy-fill me-1"></i>#1</span>
+                                    <span th:if="${stat.count == 2}" class="badge bg-secondary"><i class="bi bi-award-fill me-1"></i>#2</span>
+                                    <span th:if="${stat.count == 3}" class="badge" style="background-color: #cd7f32; color: #fff;"><i class="bi bi-award-fill me-1"></i>#3</span>
+                                    <span th:if="${stat.count > 3}" class="fw-bold text-muted ps-2" th:text="${'#' + stat.count}">#4</span>
+                                </td>
+                                <td>
+                                    <div class="fw-bold small text-dark" th:text="${entry.fullName}">Name</div>
+                                    <div class="text-muted" style="font-size: 11px;" th:text="'@' + ${entry.username}">@user</div>
+                                </td>
+                                <td class="text-end">
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 fw-bold" th:text="${entry.percentage + '%'}">100%</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

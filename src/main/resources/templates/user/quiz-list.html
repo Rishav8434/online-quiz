@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Assessment Catalog &bull; Online Quiz Platform</title>
+</head>
+<body>
+<div th:fragment="content">
+    <!-- Header Section -->
+    <div class="row align-items-center mb-4 pb-2 border-bottom">
+        <div class="col-md-7">
+            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-1 rounded-pill mb-2">CURATED ASSESSMENTS</span>
+            <h2 class="fw-bold mb-1">Knowledge Assessments</h2>
+            <p class="text-muted mb-0">Select an assessment module, test your technical skills, and earn certified credentials.</p>
+        </div>
+        <div class="col-md-5 mt-3 mt-md-0">
+            <div class="input-group shadow-sm">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" id="quizSearchInput" class="form-control" placeholder="Search by title or topic..." onkeyup="filterQuizzes()">
+                <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()" title="Clear"><i class="bi bi-x-lg"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Filter Pills & Sort Dropdown -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div class="d-flex flex-wrap gap-2" id="categoryFilters">
+            <span class="category-filter-pill active" data-category="all" onclick="filterCategory('all', this)">All Categories</span>
+            <span class="category-filter-pill" data-category="java" onclick="filterCategory('java', this)">Java &amp; Spring</span>
+            <span class="category-filter-pill" data-category="web" onclick="filterCategory('web', this)">Web &amp; Frontend</span>
+            <span class="category-filter-pill" data-category="cloud" onclick="filterCategory('cloud', this)">Cloud &amp; DevOps</span>
+            <span class="category-filter-pill" data-category="sql" onclick="filterCategory('sql', this)">Database &amp; SQL</span>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <label class="small text-muted fw-semibold text-nowrap mb-0"><i class="bi bi-sort-down me-1"></i>Sort By:</label>
+            <select id="sortSelect" class="form-select form-select-sm" style="width: 170px;" onchange="sortQuizzes()">
+                <option value="featured">Featured First</option>
+                <option value="duration-asc">Duration (Fastest)</option>
+                <option value="duration-desc">Duration (Longest)</option>
+                <option value="questions-desc">Most Questions</option>
+                <option value="title-asc">Title (A-Z)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    <div th:if="${#lists.isEmpty(quizzes)}" class="text-center py-5">
+        <div class="stat-icon-circle bg-light text-muted mx-auto mb-3" style="width: 72px; height: 72px; font-size: 2rem;">
+            <i class="bi bi-journal-x"></i>
+        </div>
+        <h4>No Quizzes Available Right Now</h4>
+        <p class="text-muted">New evaluations are being prepared. Check back shortly.</p>
+    </div>
+
+    <!-- Quiz Grid Cards Container -->
+    <div class="row g-4" id="quizCardsContainer">
+        <div th:each="quiz : ${quizzes}"
+             class="col-md-6 col-lg-4 quiz-item"
+             th:data-title="${quiz.title.toLowerCase()}"
+             th:data-desc="${quiz.description != null ? quiz.description.toLowerCase() : ''}"
+             th:data-duration="${quiz.durationMinutes}"
+             th:data-questions="${quiz.totalQuestions}">
+
+            <div class="card card-interactive h-100 p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <!-- Card Header: Duration & Questions Tags -->
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2.5 py-1.5 rounded-pill">
+                            <i class="bi bi-stopwatch me-1"></i> <span th:text="${quiz.durationMinutes + ' Mins'}">10 Mins</span>
+                        </span>
+                        <span class="badge bg-surface-elevated text-muted border px-2.5 py-1.5 rounded-pill">
+                            <i class="bi bi-patch-question me-1"></i> <span th:text="${quiz.totalQuestions + ' Questions'}">5 Questions</span>
+                        </span>
+                    </div>
+
+                    <h4 class="fw-bold text-dark mt-1 mb-2" th:text="${quiz.title}">Assessment Title</h4>
+                    <p class="text-muted small mb-4 lh-base" th:text="${quiz.description != null ? quiz.description : 'Official assessment module designed to test core competence, problem solving, and architecture skills.'}">
+                        Description text
+                    </p>
+                </div>
+
+                <div>
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top mb-3 small text-muted">
+                        <span><i class="bi bi-award me-1"></i>Passing: <strong>50%</strong></span>
+                        <span>Instructor: <strong th:text="${quiz.createdBy}">Admin</strong></span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <a th:href="@{'/quizzes/' + ${quiz.id}}" class="btn btn-outline-primary flex-fill">
+                            <i class="bi bi-info-circle me-1"></i> Overview
+                        </a>
+                        <a th:href="@{'/quizzes/' + ${quiz.id} + '/attempt'}" class="btn btn-primary flex-fill">
+                            <i class="bi bi-play-fill me-1"></i> Start Exam
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- No Search Results Found Banner -->
+    <div id="noMatchBanner" class="text-center py-5 d-none">
+        <i class="bi bi-search fs-1 text-muted d-block mb-3"></i>
+        <h5>No assessments match your current filter</h5>
+        <p class="text-muted">Try refining your search keyword or switching category tabs.</p>
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="clearSearch()">Reset Filters</button>
+    </div>
+
+    <!-- Interactive Filtering & Sorting JS -->
+    <script>
+        let activeCategory = 'all';
+
+        function filterQuizzes() {
+            const query = document.getElementById('quizSearchInput').value.toLowerCase().trim();
+            const items = document.querySelectorAll('.quiz-item');
+            let matchCount = 0;
+
+            items.forEach(item => {
+                const title = item.getAttribute('data-title') || '';
+                const desc = item.getAttribute('data-desc') || '';
+                const matchesQuery = !query || title.includes(query) || desc.includes(query);
+
+                let matchesCat = true;
+                if (activeCategory === 'java') {
+                    matchesCat = title.includes('java') || title.includes('spring') || desc.includes('java');
+                } else if (activeCategory === 'web') {
+                    matchesCat = title.includes('web') || title.includes('javascript') || title.includes('css') || title.includes('front');
+                } else if (activeCategory === 'cloud') {
+                    matchesCat = title.includes('cloud') || title.includes('devops') || title.includes('docker') || title.includes('kubernetes');
+                } else if (activeCategory === 'sql') {
+                    matchesCat = title.includes('sql') || title.includes('database') || title.includes('postgres') || desc.includes('data');
+                }
+
+                if (matchesQuery && matchesCat) {
+                    item.style.display = '';
+                    matchCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            const noMatch = document.getElementById('noMatchBanner');
+            if (noMatch) {
+                noMatch.classList.toggle('d-none', matchCount > 0);
+            }
+        }
+
+        function filterCategory(cat, el) {
+            activeCategory = cat;
+            document.querySelectorAll('#categoryFilters .category-filter-pill').forEach(pill => {
+                pill.classList.remove('active');
+            });
+            if (el) el.classList.add('active');
+            filterQuizzes();
+        }
+
+        function clearSearch() {
+            document.getElementById('quizSearchInput').value = '';
+            filterCategory('all', document.querySelector('[data-category="all"]'));
+        }
+
+        function sortQuizzes() {
+            const container = document.getElementById('quizCardsContainer');
+            const items = Array.from(document.querySelectorAll('.quiz-item'));
+            const sortMode = document.getElementById('sortSelect').value;
+
+            items.sort((a, b) => {
+                const durA = parseInt(a.getAttribute('data-duration') || '0', 10);
+                const durB = parseInt(b.getAttribute('data-duration') || '0', 10);
+                const qA = parseInt(a.getAttribute('data-questions') || '0', 10);
+                const qB = parseInt(b.getAttribute('data-questions') || '0', 10);
+                const titleA = a.getAttribute('data-title') || '';
+                const titleB = b.getAttribute('data-title') || '';
+
+                if (sortMode === 'duration-asc') return durA - durB;
+                if (sortMode === 'duration-desc') return durB - durA;
+                if (sortMode === 'questions-desc') return qB - qA;
+                if (sortMode === 'title-asc') return titleA.localeCompare(titleB);
+                return 0; // Default/Featured
+            });
+
+            items.forEach(item => container.appendChild(item));
+        }
+    </script>
+</div>
+</body>
+</html>

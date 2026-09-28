@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Quiz Results</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #1e293b; }
+        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .header h1 { color: #4f46e5; margin: 0; font-size: 24px; text-align: center; }
+        .score-box { background-color: #f1f5f9; border-radius: 8px; padding: 20px; text-align: center; margin: 24px 0; }
+        .score-value { font-size: 44px; font-weight: bold; color: #4f46e5; }
+        .btn { display: inline-block; background-color: #4f46e5; color: #ffffff !important; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; margin-top: 10px; }
+        .footer { margin-top: 30px; text-align: center; font-size: 13px; color: #94a3b8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Assessment Results</h1>
+        </div>
+        <div>
+            <p>Hello <strong th:text="${fullName}">User</strong>,</p>
+            <p>You have completed the assessment: <strong th:text="${quizTitle}">Quiz Title</strong>.</p>
+            <div class="score-box">
+                <div>Your Score</div>
+                <div class="score-value" th:text="${percentage + '%'}">85%</div>
+                <div style="color: #64748b; margin-top: 8px;">Points: <span th:text="${score}">4</span></div>
+            </div>
+            <div style="text-align: center;">
+                <a th:href="${resultUrl}" class="btn">View Detailed Analysis</a>
+            </div>
+        </div>
+        <div class="footer">
+            <p>&copy; 2026 Online Quiz Platform. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

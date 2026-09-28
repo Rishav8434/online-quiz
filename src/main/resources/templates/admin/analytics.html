@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(~{::title}, ~{::content})}">
+<head>
+    <title th:text="${'Analytics: ' + (analytics != null ? analytics.quizTitle : 'Global') + ' &bull; Admin Portal'}">Quiz Analytics</title>
+</head>
+<body>
+<div th:fragment="content">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom gap-2">
+        <div>
+            <a th:href="@{/admin/dashboard}" class="text-muted small d-inline-flex align-items-center mb-1">
+                <i class="bi bi-arrow-left me-1"></i> Back to Admin Dashboard
+            </a>
+            <h2 class="fw-bold mb-0">Performance Analytics &bull; <span th:text="${analytics != null ? analytics.quizTitle : 'Global Overview'}">Title</span></h2>
+        </div>
+        <div class="d-flex gap-2">
+            <button th:if="${analytics != null}" type="button" class="btn btn-outline-secondary" th:onclick="'exportQuizCsv(' + ${analytics.quizId} + ')'">
+                <i class="bi bi-download me-1"></i> Export CSV
+            </button>
+            <a th:if="${analytics != null}" th:href="@{'/admin/quizzes/' + ${analytics.quizId} + '/leaderboard'}" class="btn btn-warning text-dark fw-semibold">
+                <i class="bi bi-trophy-fill me-1"></i> Full Leaderboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Analytics Key Metrics Row -->
+    <div th:if="${analytics != null}" class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card stat-card p-3 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase">Total Submissions</div>
+                        <div class="fs-2 fw-bold text-dark mt-1" th:text="${analytics.totalAttempts}">0</div>
+                    </div>
+                    <div class="stat-icon-circle bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card stat-card stat-success p-3 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase">Mean Accuracy</div>
+                        <div class="fs-2 fw-bold text-success mt-1"><span th:text="${analytics.averagePercentage}">0.0</span>%</div>
+                    </div>
+                    <div class="stat-icon-circle bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card stat-card stat-warning p-3 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase">Highest Score</div>
+                        <div class="fs-2 fw-bold text-warning mt-1" th:text="${analytics.highestScore}">0</div>
+                    </div>
+                    <div class="stat-icon-circle bg-warning bg-opacity-10 text-warning">
+                        <i class="bi bi-star-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card stat-card stat-danger p-3 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-bold text-uppercase">Lowest Score</div>
+                        <div class="fs-2 fw-bold text-danger mt-1" th:text="${analytics.lowestScore}">0</div>
+                    </div>
+                    <div class="stat-icon-circle bg-danger bg-opacity-10 text-danger">
+                        <i class="bi bi-dash-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Data Charts Row -->
+    <div th:if="${analytics != null}" class="row g-4 mb-4">
+        <!-- Score Distribution Bar Chart -->
+        <div class="col-lg-8">
+            <div class="card p-4 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Score Tier Distribution</h5>
+                    <span class="badge bg-light text-muted border">Participant Tiers</span>
+                </div>
+                <div style="height: 250px; position: relative;">
+                    <canvas id="scoreDistributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pass vs Fail Ratio Doughnut Chart -->
+        <div class="col-lg-4">
+            <div class="card p-4 shadow-sm h-100">
+                <h5 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill me-2 text-success"></i>Pass vs Fail Ratio</h5>
+                <div style="height: 250px; position: relative;">
+                    <canvas id="passFailChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Performers Roster -->
+    <div th:if="${analytics != null}" class="card p-4 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0"><i class="bi bi-trophy me-2 text-warning"></i>Top Performers Preview</h5>
+            <span class="badge bg-light text-dark border" th:text="${analytics.leaderboard.size() + ' Submissions'}">0 Submissions</span>
+        </div>
+
+        <div th:if="${#lists.isEmpty(analytics.leaderboard)}" class="text-center py-4 text-muted small">
+            No completed submissions recorded yet for this assessment module.
+        </div>
+
+        <div th:if="${not #lists.isEmpty(analytics.leaderboard)}" class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Rank</th>
+                        <th>Participant</th>
+                        <th>Score</th>
+                        <th>Accuracy</th>
+                        <th>Duration</th>
+                        <th>Completed Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="entry : ${analytics.leaderboard}">
+                        <td>
+                            <span class="badge bg-primary px-2.5 py-1" th:text="${'#' + entry.rank}">#1</span>
+                        </td>
+                        <td>
+                            <div class="fw-bold text-dark" th:text="${entry.fullName}">Name</div>
+                            <small class="text-muted" th:text="'@' + ${entry.username}">@user</small>
+                        </td>
+                        <td class="fw-bold text-dark" th:text="${entry.score}">5</td>
+                        <td>
+                            <span th:class="${entry.percentage >= 70 ? 'badge bg-success' : 'badge bg-warning text-dark'}"
+                                  th:text="${entry.percentage + '%'}">100%</span>
+                        </td>
+                        <td class="text-muted" th:text="${(entry.durationTakenSeconds / 60) + 'm ' + (entry.durationTakenSeconds % 60) + 's'}">1m 30s</td>
+                        <td class="text-muted small" th:text="${#temporals.format(entry.attemptedAt, 'MMM dd, yyyy')}">Oct 12, 2026</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Chart & CSV Script -->
+    <script th:inline="javascript" th:if="${analytics != null}">
+        /*<![CDATA[*/
+        const leaderboardData = /*[[${analytics.leaderboard}]]*/ [];
+        const quizId = /*[[${analytics.quizId}]]*/ 1;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+            const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
+            const textColor = isDark ? '#94a3b8' : '#64748b';
+
+            // Calculate tier counts
+            let tier1 = 0, tier2 = 0, tier3 = 0, tier4 = 0, tier5 = 0;
+            let passedCount = 0, failedCount = 0;
+
+            leaderboardData.forEach(e => {
+                const p = e.percentage;
+                if (p <= 20) tier1++;
+                else if (p <= 40) tier2++;
+                else if (p <= 60) tier3++;
+                else if (p <= 80) tier4++;
+                else tier5++;
+
+                if (p >= 50) passedCount++;
+                else failedCount++;
+            });
+
+            // If empty, supply placeholder visualization
+            if (leaderboardData.length === 0) {
+                tier4 = 1; tier5 = 2; passedCount = 3;
+            }
+
+            // 1. Score Distribution Bar Chart
+            const barCtx = document.getElementById('scoreDistributionChart');
+            if (barCtx) {
+                new Chart(barCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'],
+                        datasets: [{
+                            label: 'Participants',
+                            data: [tier1, tier2, tier3, tier4, tier5],
+                            backgroundColor: [
+                                '#ef4444',
+                                '#f97316',
+                                '#f59e0b',
+                                '#3b82f6',
+                                '#10b981'
+                            ],
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1, color: textColor },
+                                grid: { color: gridColor }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: textColor }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 2. Pass vs Fail Ratio Doughnut Chart
+            const doughnutCtx = document.getElementById('passFailChart');
+            if (doughnutCtx) {
+                new Chart(doughnutCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Passed (>=50%)', 'Failed (<50%)'],
+                        datasets: [{
+                            data: [passedCount, failedCount],
+                            backgroundColor: ['#10b981', '#ef4444'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: textColor }
+                            }
+                        },
+                        cutout: '70%'
+                    }
+                });
+            }
+        });
+
+        async function exportQuizCsv(qId) {
+            try {
+                const response = await AppAuth.fetchAuth(`/api/admin/quizzes/${qId}/export`);
+                if (response && response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `quiz_${qId}_analytics_results.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    showToast('CSV report generated and downloaded', 'success');
+                } else {
+                    showToast('Failed to export CSV', 'error');
+                }
+            } catch (e) {
+                showToast('Error exporting CSV', 'error');
+            }
+        }
+        /*]]>*/
+    </script>
+</div>
+</body>
+</html>
